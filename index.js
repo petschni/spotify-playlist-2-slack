@@ -43,7 +43,11 @@ var fetchPlaylist = function() {
 			client.set('lastDate', date);
 		};
 	} else {
-		lastDate = new Date(fs.readFileSync('./last_date.txt').toString() );
+			if (fs.existsSync('./last_date.txt'))
+				lastDate = new Date(fs.readFileSync('./last_date.txt').toString() );
+			else
+				lastDate = null;
+
 		writeLastDate = function(date) {
 			fs.writeFile("./last_date.txt", date, function() {});
 		};
@@ -59,9 +63,9 @@ var fetchPlaylist = function() {
 		  .then(function(data) {
 		    for (var i in data.tracks.items) {
 		   	  var date = new Date(data.tracks.items[i].added_at);
-		   	  if((lastDate === undefined) || (date > lastDate)) {
-		   	  	post(data.name, 
-		   	  		data.external_urls.spotify, 
+		   	  if((lastDate === undefined) || (date > lastDate) || (lastDate == "Invalid Date")) {
+		   	  	post(data.name,
+		   	  		data.external_urls.spotify,
 		   	  		data.tracks.items[i].added_by ? data.tracks.items[i].added_by.id : "Unknown",
 		   	  		data.tracks.items[i].track.name,
 		   	  		data.tracks.items[i].track.artists);
@@ -90,5 +94,20 @@ function post(list_name, list_url, added_by, trackname, artists) {
 	slacker({text: text});
 }
 
+function startWebServer() {
+	var http = require('http');
+
+	var host = process.env.VCAP_APP_HOST || 'localhost';
+	var port = process.env.VCAP_APP_PORT || 1337
+
+	http.createServer(function (req, res) {
+	    res.writeHead(200, {'Content-Type': 'text/html'});
+	    res.end('No functions and features at this place...' + process.version);
+	}).listen(port, null);
+
+	console.log('Server running to provide incoming network connetion for Bluemix at http://' + host + ':' + port + '/');
+}
+
+startWebServer();
 grantClient();
 setInterval(fetchPlaylist(), 1000 * 10);
